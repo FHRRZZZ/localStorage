@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
-import "./PresensiScanner.css"; // Import file CSS eksternal
+import "./PresensiScanner.css";
 
 const PresensiScanner = () => {
   const videoRef = useRef(null);
@@ -9,19 +9,30 @@ const PresensiScanner = () => {
   const [message, setMessage] = useState("");
   const [dataPresensi, setDataPresensi] = useState([]);
 
+  // Cek dan reset otomatis tiap menit
   useEffect(() => {
+    const checkAndResetPresensi = () => {
+      const today = new Date().toLocaleDateString("id-ID");
+      const lastReset = localStorage.getItem("lastReset");
 
-    const today = new Date().toLocaleDateString("id-ID");
-    const lastReset = localStorage.getItem("lastReset");
-
-    if (lastReset !== today) {
-        localStorage.removeItem("dataPresensi");
-        localStorage.removeItem("presensi");
+      if (lastReset !== today) {
+        localStorage.setItem("dataPresensi", JSON.stringify([]));
         localStorage.setItem("lastReset", today);
-        setDataPresensi([]); // Kosongkan state juga
-        setMessage("✅ Presensi telah direset untuk hari ini");
-    }
+        setDataPresensi([]);
+        setMessage("✅ Presensi telah direset otomatis untuk hari ini");
+      } else {
+        const existing = JSON.parse(localStorage.getItem("dataPresensi")) || [];
+        setDataPresensi(existing);
+      }
+    };
 
+    checkAndResetPresensi();
+    const interval = setInterval(checkAndResetPresensi, 60 * 1000); // Cek tiap 1 menit
+    return () => clearInterval(interval);
+  }, []);
+
+  // Jalankan kamera & scan
+  useEffect(() => {
     const startCamera = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -65,36 +76,34 @@ const PresensiScanner = () => {
       const tracks = videoRef.current?.srcObject?.getTracks();
       tracks?.forEach((track) => track.stop());
     };
-  }, [dataPresensi]);
+  }, []);
 
   const handleScan = (nisn) => {
     const list = JSON.parse(localStorage.getItem("siswa")) || [];
     const siswa = list.find((s) => s.nisn.trim() === nisn.trim());
 
-    if (siswa) {
-      const now = new Date();
-      const waktu = now.toLocaleTimeString("id-ID");
-      const tanggal = now.toLocaleDateString("id-ID");
-
-      const sudahPresensi = dataPresensi.some((d) => d.nisn === nisn);
-      if (!sudahPresensi) {
-        const presensiBaru = { ...siswa, tanggal, waktu };
-        const updated = [...dataPresensi, presensiBaru];
-        setDataPresensi(updated);
-        localStorage.setItem("dataPresensi", JSON.stringify(updated));
-        setMessage(`✅ ${siswa.nama} hadir pada ${tanggal} ${waktu}`);
-
-        const presensiList = JSON.parse(localStorage.getItem("presensi")) || [];
-        if (!presensiList.includes(nisn)) {
-          presensiList.push(nisn);
-          localStorage.setItem("presensi", JSON.stringify(presensiList));
-        }
-      } else {
-        setMessage(`⚠️ ${siswa.nama} sudah absen`);
-      }
-    } else {
+    if (!siswa) {
       setMessage("❌ Siswa tidak ditemukan");
+      return;
     }
+
+    const now = new Date();
+    const tanggal = now.toLocaleDateString("id-ID");
+    const waktu = now.toLocaleTimeString("id-ID");
+
+    const existing = JSON.parse(localStorage.getItem("dataPresensi")) || [];
+    const sudahAda = existing.find((d) => d.nisn === nisn && d.tanggal === tanggal);
+
+    if (sudahAda) {
+      setMessage(`⚠️ ${siswa.nama} sudah absen`);
+      return;
+    }
+
+    const presensiBaru = { ...siswa, tanggal, waktu };
+    const updated = [...existing, presensiBaru];
+    setDataPresensi(updated);
+    localStorage.setItem("dataPresensi", JSON.stringify(updated));
+    setMessage(`✅ ${siswa.nama} hadir pada ${tanggal} ${waktu}`);
   };
 
   const handleUpload = (e) => {
