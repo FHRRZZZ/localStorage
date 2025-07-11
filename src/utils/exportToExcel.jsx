@@ -3,32 +3,27 @@ import { saveAs } from "file-saver";
 
 export const exportToExcel = () => {
   const siswa = JSON.parse(localStorage.getItem("siswa")) || [];
-  const presensi = JSON.parse(localStorage.getItem("dataPresensi")) || [];
+  const riwayat = JSON.parse(localStorage.getItem("riwayatPresensi")) || [];
 
   if (siswa.length === 0) {
     alert("Belum ada data siswa!");
     return;
   }
 
-  // Ambil semua tanggal unik dari data presensi
-  const tanggalUnik = [...new Set(presensi.map(p => p.tanggal))].sort();
+  // Ambil semua tanggal unik dari riwayat
+  const tanggalUnik = [...new Set(riwayat.map(p => p.tanggal))].sort();
 
-  // Bentuk struktur baris untuk setiap siswa
+  // Bentuk struktur baris: satu siswa, banyak tanggal
   const data = siswa.map(s => {
-    const row = {
-      Nama: s.nama,
-      NISN: s.nisn,
-    };
-
+    const row = { Nama: s.nama, NISN: s.nisn };
     tanggalUnik.forEach(tgl => {
-      const hadir = presensi.some(p => p.nisn === s.nisn && p.tanggal === tgl);
+      const hadir = riwayat.some(p => p.nisn === s.nisn && p.tanggal === tgl);
       row[tgl] = hadir ? "✅" : "";
     });
-
     return row;
   });
 
-  // Buat dan export Excel
+  // Buat file Excel
   const worksheet = XLSX.utils.json_to_sheet(data);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Presensi");
