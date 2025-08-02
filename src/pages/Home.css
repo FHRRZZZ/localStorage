@@ -198,3 +198,42 @@ button {
     overflow-x: auto;
   }
 }
+
+.import-section {
+  background-color: #0056b3; /* biru tua */
+  display: flex;
+  flex-direction: column;
+  align-items: center;        /* agar isi terpusat horizontal */
+  justify-content: center;    /* agar isi terpusat vertikal (jika tinggi ada) */
+  border-radius: 20px;
+  padding: 1.5rem 1rem;       /* beri ruang dalam */
+  gap: 1rem;                  /* jarak antar elemen */
+  color: white;               /* supaya teks terang di background biru */
+  max-width: 500px;
+  margin: 2rem auto;          /* agar container muncul di tengah dan ada jarak vertikal */
+}
+
+.import-section h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.input-excel {
+  width: 80%;
+  max-width: 400px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  background-color: #e0e7ff; /* warna input agak terang supaya kontras */
+  color: #000;
+  transition: background-color 0.3s ease;
+}
+
+.input-excel:hover,
+.input-excel:focus {
+  background-color: #c7d2fe;
+  outline: none;
+}

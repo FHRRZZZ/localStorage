@@ -12,6 +12,7 @@
     "watch-css": "npx tailwindcss -i ./src/input.css -o ./src/index.css --watch"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.1.11",
     "file-saver": "^2.0.5",
     "jsqr": "^1.4.0",
     "react": "^19.1.0",
