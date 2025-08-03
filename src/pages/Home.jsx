@@ -68,7 +68,7 @@ const Home = () => {
     ];
 
     if (!allowedTypes.includes(file.type)) {
-      setMessage("❌ Format file tidak didukung. Gunakan .xlsx, .xls, atau .csv");
+      setMessage(" Format file tidak didukung. Gunakan .xlsx, .xls, atau .csv");
       e.target.value = null; // reset input
       return;
     }
@@ -78,7 +78,7 @@ const Home = () => {
     const reader = new FileReader();
 
     reader.onerror = () => {
-      setMessage("❌ Gagal membaca file Excel. Coba lagi.");
+      setMessage(" Gagal membaca file Excel. Coba lagi.");
     };
 
     reader.onload = (event) => {
@@ -102,15 +102,15 @@ const Home = () => {
           .filter((item) => item.nama !== "" && item.nisn !== "");
 
         if (formattedData.length === 0) {
-          setMessage("⚠️ File Excel tidak mengandung data siswa yang valid.");
+          setMessage(" File Excel tidak mengandung data siswa yang valid.");
           return;
         }
 
         setData(formattedData);
         localStorage.setItem("siswa", JSON.stringify(formattedData));
-        setMessage(`✅ Berhasil import ${formattedData.length} siswa.`);
+        setMessage(` Berhasil import ${formattedData.length} siswa.`);
       } catch (error) {
-        setMessage("❌ Terjadi kesalahan saat memproses file Excel.");
+        setMessage(" Terjadi kesalahan saat memproses file Excel.");
         console.error(error);
       }
     };
@@ -182,7 +182,7 @@ const Home = () => {
                         Unduh QR
                       </button>
                     </td>
-                    <td>{isHadir(item.nisn) ? "✅ Hadir" : "❌ Belum Hadir"}</td>
+                    <td>{isHadir(item.nisn) ? "Hadir" : "Belum Hadir"}</td>
                     <td>
                       <button
                         className="delete-btn"
