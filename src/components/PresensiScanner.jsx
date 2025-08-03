@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
+import * as XLSX from "xlsx"; // 📦 library untuk Excel
 import "./PresensiScanner.css";
 
 const PresensiScanner = () => {
@@ -10,7 +11,7 @@ const PresensiScanner = () => {
   const [dataPresensi, setDataPresensi] = useState([]);
   const [useFrontCamera, setUseFrontCamera] = useState(true); // ✅ kamera depan default
 
-  // Reset otomatis presensi harian
+  // 🔄 Reset otomatis presensi harian
   useEffect(() => {
     const checkAndResetPresensi = () => {
       const today = new Date().toLocaleDateString("id-ID");
@@ -32,12 +33,12 @@ const PresensiScanner = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Inisialisasi kamera dan loop scanning
+  // 📷 Inisialisasi kamera dan loop scanning
   useEffect(() => {
     const startCamera = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: useFrontCamera ? "user" : "environment" }, // ✅ bisa ganti kamera
+          video: { facingMode: useFrontCamera ? "user" : "environment" },
         });
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -73,9 +74,9 @@ const PresensiScanner = () => {
       const tracks = videoRef.current?.srcObject?.getTracks();
       tracks?.forEach((track) => track.stop());
     };
-  }, [useFrontCamera]); // ✅ restart kalau ganti kamera
+  }, [useFrontCamera]);
 
-  // Tangani hasil scan QR
+  // ✅ Tangani hasil scan QR
   const handleScan = (nisn) => {
     const list = JSON.parse(localStorage.getItem("siswa")) || [];
     const siswa = list.find((s) => s.nisn.trim() === nisn.trim());
@@ -94,7 +95,7 @@ const PresensiScanner = () => {
     setDataPresensi(updated);
     localStorage.setItem("dataPresensi", JSON.stringify(updated));
 
-    // Tambahkan ke riwayat presensi global
+    // Tambahkan ke riwayat global
     const riwayat = JSON.parse(localStorage.getItem("riwayatPresensi")) || [];
     riwayat.push(presensiBaru);
     localStorage.setItem("riwayatPresensi", JSON.stringify(riwayat));
@@ -102,7 +103,7 @@ const PresensiScanner = () => {
     setMessage(`✅ ${siswa.nama} hadir pada ${tanggal} ${waktu}`);
   };
 
-  // Upload gambar QR
+  // ✅ Upload gambar QR
   const handleUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -126,13 +127,40 @@ const PresensiScanner = () => {
     reader.readAsDataURL(file);
   };
 
+  // ✅ Import Excel Fix Android
+  const handleImportExcel = (e) => {
+    const file = e.target.files[0];
+    if (!file) return alert("❌ Tidak ada file dipilih");
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const arrayBuffer = event.target.result;
+        const workbook = XLSX.read(arrayBuffer, { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+        // Simpan ke localStorage
+        localStorage.setItem("siswa", JSON.stringify(jsonData));
+        alert("✅ Data siswa berhasil diimport!");
+      } catch (err) {
+        console.error("❌ Error parsing Excel:", err);
+        alert("❌ Gagal membaca file. Coba simpan sebagai CSV.");
+      }
+    };
+    reader.readAsArrayBuffer(file); // ✅ Android fix
+  };
+
   return (
     <div className="scanner-container">
+      {/* Kamera */}
       <video ref={videoRef} className="video" playsInline muted />
       <canvas ref={canvasRef} style={{ display: "none" }} />
 
       <p className="message">{message}</p>
 
+      {/* Tombol Upload QR + Ganti Kamera */}
       <div className="upload-wrapper">
         <input
           type="file"
@@ -144,14 +172,23 @@ const PresensiScanner = () => {
         <button onClick={() => fileInputRef.current.click()} className="btn-upload">
           Upload Gambar QR
         </button>
-        <button
-          onClick={() => setUseFrontCamera(!useFrontCamera)}
-          className="btn-upload"
-        >
+        <button onClick={() => setUseFrontCamera(!useFrontCamera)} className="btn-upload">
           Ganti Kamera ({useFrontCamera ? "Depan" : "Belakang"})
         </button>
       </div>
 
+      {/* Import Excel */}
+      <div className="import-section">
+        <h2>📂 Import Data Siswa dari Excel</h2>
+        <input
+          type="file"
+          className="input-excel"
+          accept=".xlsx, .xls, .csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, text/csv"
+          onChange={handleImportExcel}
+        />
+      </div>
+
+      {/* Daftar Hadir */}
       {dataPresensi.length > 0 && (
         <div className="presensi-list">
           <h3 className="title">Daftar Hadir</h3>
