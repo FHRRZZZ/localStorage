@@ -7,7 +7,7 @@ import "./Home.css";
 const Home = () => {
   const [data, setData] = useState([]);
   const [presensiList, setPresensiList] = useState([]);
-  const [message, setMessage] = useState(""); // Untuk feedback import/export/error
+  const [message, setMessage] = useState(""); // feedback import/export/error
 
   useEffect(() => {
     const loadData = () => {
@@ -56,10 +56,22 @@ const Home = () => {
     document.body.removeChild(link);
   };
 
-  // === FITUR IMPORT EXCEL (dengan validasi dan error handling) ===
+  // === FITUR IMPORT EXCEL dengan validasi dan error handling ===
   const handleImportExcel = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    const allowedTypes = [
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-excel",
+      "text/csv",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setMessage("❌ Format file tidak didukung. Gunakan .xlsx, .xls, atau .csv");
+      e.target.value = null; // reset input
+      return;
+    }
 
     setMessage(""); // reset pesan
 
@@ -78,7 +90,7 @@ const Home = () => {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
 
-        // Baca sheet jadi JSON
+        // Baca sheet jadi JSON dengan default nilai kosong
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
         // Map dan validasi field nama & nisn
@@ -104,6 +116,8 @@ const Home = () => {
     };
 
     reader.readAsArrayBuffer(file);
+
+    e.target.value = null; // reset input supaya bisa import file sama lagi
   };
 
   return (
