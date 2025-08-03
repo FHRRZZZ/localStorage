@@ -8,6 +8,7 @@ const PresensiScanner = () => {
   const fileInputRef = useRef();
   const [message, setMessage] = useState("");
   const [dataPresensi, setDataPresensi] = useState([]);
+  const [useFrontCamera, setUseFrontCamera] = useState(false); // false = belakang (default), true = depan
 
   // Reset otomatis presensi harian
   useEffect(() => {
@@ -31,14 +32,17 @@ const PresensiScanner = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Inisialisasi kamera dan loop scanning
+  // Inisialisasi kamera dan loop scanning (restart tiap ganti kamera)
   useEffect(() => {
+    let animationFrameId;
     const startCamera = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: useFrontCamera ? "user" : "environment" },
+        });
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          videoRef.current.play();
+          await videoRef.current.play();
         }
       } catch (err) {
         console.error("❌ Tidak bisa akses kamera", err);
@@ -61,15 +65,19 @@ const PresensiScanner = () => {
         if (code) handleScan(code.data.trim());
       }
 
-      requestAnimationFrame(scanLoop);
+      animationFrameId = requestAnimationFrame(scanLoop);
     };
 
-    startCamera().then(() => requestAnimationFrame(scanLoop));
+    startCamera().then(() => {
+      animationFrameId = requestAnimationFrame(scanLoop);
+    });
+
     return () => {
+      cancelAnimationFrame(animationFrameId);
       const tracks = videoRef.current?.srcObject?.getTracks();
       tracks?.forEach((track) => track.stop());
     };
-  }, []);
+  }, [useFrontCamera]); // Restart tiap kamera berubah
 
   // Tangani hasil scan QR
   const handleScan = (nisn) => {
@@ -131,7 +139,18 @@ const PresensiScanner = () => {
 
       <div className="upload-wrapper">
         <input type="file" accept="image/*" ref={fileInputRef} onChange={handleUpload} className="hidden" />
-        <button onClick={() => fileInputRef.current.click()} className="btn-upload">Upload Gambar QR</button>
+        <button onClick={() => fileInputRef.current.click()} className="btn-upload">
+          Upload Gambar QR
+        </button>
+        <button
+          onClick={() => {
+            setUseFrontCamera((prev) => !prev);
+            setMessage(""); // reset message saat ganti kamera
+          }}
+          className="btn-upload"
+        >
+          Ganti Kamera ({useFrontCamera ? "Depan" : "Belakang"})
+        </button>
       </div>
 
       {dataPresensi.length > 0 && (
@@ -139,7 +158,9 @@ const PresensiScanner = () => {
           <h3 className="title">Daftar Hadir</h3>
           <ul>
             {dataPresensi.map((item, i) => (
-              <li key={i}>{item.nama} ({item.nisn}) – {item.tanggal} {item.waktu}</li>
+              <li key={i}>
+                {item.nama} ({item.nisn}) – {item.tanggal} {item.waktu}
+              </li>
             ))}
           </ul>
         </div>
