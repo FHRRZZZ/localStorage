@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import FormInput from "../components/FormInput";
 import { exportToExcel } from "../utils/exportToExcel";
-import * as XLSX from "xlsx"; // ← tambahkan ini
+import * as XLSX from "xlsx";
 import "./Home.css";
 
 const Home = () => {
   const [data, setData] = useState([]);
   const [presensiList, setPresensiList] = useState([]);
+  const [message, setMessage] = useState(""); // Untuk feedback import/export/error
 
   useEffect(() => {
     const loadData = () => {
@@ -55,30 +56,53 @@ const Home = () => {
     document.body.removeChild(link);
   };
 
-  // === FITUR IMPORT EXCEL ===
+  // === FITUR IMPORT EXCEL (dengan validasi dan error handling) ===
   const handleImportExcel = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    setMessage(""); // reset pesan
+
     const reader = new FileReader();
-    reader.onload = (event) => {
-      const data = new Uint8Array(event.target.result);
-      const workbook = XLSX.read(data, { type: "array" });
 
-      // Ambil sheet pertama
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-      // Pastikan formatnya { nama: "", nisn: "" }
-      const formattedData = jsonData.map((row) => ({
-        nama: row.Nama || row.nama || "",
-        nisn: row.NISN || row.nisn || "",
-      }));
-
-      setData(formattedData);
-      localStorage.setItem("siswa", JSON.stringify(formattedData));
+    reader.onerror = () => {
+      setMessage("❌ Gagal membaca file Excel. Coba lagi.");
     };
+
+    reader.onload = (event) => {
+      try {
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+
+        // Ambil sheet pertama
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+
+        // Baca sheet jadi JSON
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+        // Map dan validasi field nama & nisn
+        const formattedData = jsonData
+          .map((row) => ({
+            nama: (row.Nama || row.nama || "").toString().trim(),
+            nisn: (row.NISN || row.nisn || "").toString().trim(),
+          }))
+          .filter((item) => item.nama !== "" && item.nisn !== "");
+
+        if (formattedData.length === 0) {
+          setMessage("⚠️ File Excel tidak mengandung data siswa yang valid.");
+          return;
+        }
+
+        setData(formattedData);
+        localStorage.setItem("siswa", JSON.stringify(formattedData));
+        setMessage(`✅ Berhasil import ${formattedData.length} siswa.`);
+      } catch (error) {
+        setMessage("❌ Terjadi kesalahan saat memproses file Excel.");
+        console.error(error);
+      }
+    };
+
     reader.readAsArrayBuffer(file);
   };
 
@@ -99,7 +123,13 @@ const Home = () => {
       {/* IMPORT EXCEL */}
       <div className="import-section">
         <h2>Import Data Siswa dari Excel</h2>
-        <input className="input-excel" type="file" accept=".xlsx, .xls, .csv" onChange={handleImportExcel} />
+        <input
+          className="input-excel"
+          type="file"
+          accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+          onChange={handleImportExcel}
+        />
+        {message && <p className="message">{message}</p>}
       </div>
 
       {/* TABLE SECTION */}
